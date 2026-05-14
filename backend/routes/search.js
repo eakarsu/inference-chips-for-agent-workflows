@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const { verifyToken } = require('../middleware/auth');
+const verifyToken = require("../middleware/auth");
 
 // Cross-entity search + filter. Supports ?q=<text> and per-table ?availability= / ?complexity= / ?focus_area= filters.
 router.get('/', verifyToken, async (req, res) => {

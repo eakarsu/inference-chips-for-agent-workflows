@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const { verifyToken } = require('../middleware/auth');
+const verifyToken = require("../middleware/auth");
 
 // Domain-realistic sample rows for inference chips & agent workflows.
 // All inserts are JWT-protected. Returns { inserted, entity }.

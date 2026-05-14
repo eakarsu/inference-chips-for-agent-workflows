@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const { verifyToken } = require('../middleware/auth');
+const verifyToken = require("../middleware/auth");
 router.get('/', verifyToken, async (req, res) => {
   try { res.json((await db.query('SELECT * FROM research ORDER BY citations DESC')).rows); } catch (e) { res.status(500).json({ error: e.message }); }
 });
