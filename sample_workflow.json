@@ -1,0 +1,84 @@
+{
+  "workflow_name": "Research Agent — Multi-step Literature Review",
+  "description": "An AI agent that searches academic papers, summarises findings, and drafts a report.",
+  "steps": [
+    {
+      "name": "parse_user_query",
+      "type": "cpu_compute",
+      "duration_ms": 12,
+      "memory_mb": 64,
+      "io_bound": false
+    },
+    {
+      "name": "embed_query",
+      "type": "model_call",
+      "duration_ms": 45,
+      "memory_mb": 2048,
+      "io_bound": false
+    },
+    {
+      "name": "vector_db_search",
+      "type": "memory_read",
+      "duration_ms": 310,
+      "memory_mb": 4096,
+      "io_bound": true
+    },
+    {
+      "name": "fetch_paper_abstracts",
+      "type": "tool_use",
+      "duration_ms": 820,
+      "memory_mb": 512,
+      "io_bound": true
+    },
+    {
+      "name": "summarise_paper_1",
+      "type": "model_call",
+      "duration_ms": 1200,
+      "memory_mb": 16384,
+      "io_bound": false
+    },
+    {
+      "name": "summarise_paper_2",
+      "type": "model_call",
+      "duration_ms": 1350,
+      "memory_mb": 16384,
+      "io_bound": false
+    },
+    {
+      "name": "summarise_paper_3",
+      "type": "model_call",
+      "duration_ms": 980,
+      "memory_mb": 16384,
+      "io_bound": false
+    },
+    {
+      "name": "retrieve_citation_metadata",
+      "type": "memory_read",
+      "duration_ms": 180,
+      "memory_mb": 256,
+      "io_bound": true
+    },
+    {
+      "name": "call_citation_api",
+      "type": "tool_use",
+      "duration_ms": 430,
+      "memory_mb": 128,
+      "io_bound": true
+    },
+    {
+      "name": "draft_report_section",
+      "type": "model_call",
+      "duration_ms": 2100,
+      "memory_mb": 32768,
+      "io_bound": false
+    }
+  ],
+  "chip_config": {
+    "name": "LiquidAI Inference ASIC v1",
+    "context_switch_ns": 200,
+    "kv_cache_gb": 128,
+    "speculative_decode": true,
+    "memory_bandwidth_tbps": 6.0,
+    "compute_tops": 2000
+  }
+}

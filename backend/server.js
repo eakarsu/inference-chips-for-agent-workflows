@@ -1,0 +1,39 @@
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+const express = require('express');
+const cors = require('cors');
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/ai', require('./routes/ai'));
+app.use('/api/chips', require('./routes/chips'));
+app.use('/api/workflows', require('./routes/workflows'));
+app.use('/api/steps', require('./routes/steps'));
+app.use('/api/benchmarks', require('./routes/benchmarks'));
+app.use('/api/deployments', require('./routes/deployments'));
+app.use('/api/research', require('./routes/research'));
+app.use('/api/export', require('./routes/export'));
+app.use('/api/audit', require('./routes/audit'));
+app.use('/api/search', require('./routes/search'));
+app.use('/api/admin', require('./routes/sample_data'));
+app.use('/api/dashboard', require('./routes/dashboard'));
+
+const PORT = process.env.PORT || 3011;
+app.listen(PORT, () => console.log(`ChipProfiler API running on port ${PORT}`));
+app.use('/api/gap-ai-kv-cache-sizer', require('./routes/gap-ai-kv-cache-sizer'));
+app.use('/api/gap-ai-speculative-decoding-tuner', require('./routes/gap-ai-speculative-decoding-tuner'));
+app.use('/api/gap-ai-context-switch-cost', require('./routes/gap-ai-context-switch-cost'));
+app.use('/api/gap-ai-compiler-pass-recommender', require('./routes/gap-ai-compiler-pass-recommender'));
+app.use('/api/gap-ai-workflow-replay-sim', require('./routes/gap-ai-workflow-replay-sim'));
+app.use('/api/gap-nonai-chip-trace-ingest', require('./routes/gap-nonai-chip-trace-ingest'));
+app.use('/api/gap-nonai-hdl-linkage', require('./routes/gap-nonai-hdl-linkage'));
+app.use('/api/gap-nonai-ppa-sweep-store', require('./routes/gap-nonai-ppa-sweep-store'));
+app.use('/api/gap-nonai-hbm-allocation', require('./routes/gap-nonai-hbm-allocation'));
+app.use('/api/gap-nonai-mlperf-connector', require('./routes/gap-nonai-mlperf-connector'));
+app.use('/api/cf-agent-loop-profiler', require('./routes/cf-agent-loop-profiler'));
+app.use('/api/cf-auto-rtl-stubs', require('./routes/cf-auto-rtl-stubs'));
+app.use('/api/cf-kvcache-simulator', require('./routes/cf-kvcache-simulator'));
+app.use('/api/cf-compiler-pass-search', require('./routes/cf-compiler-pass-search'));
+app.use('/api/cf-energy-economics', require('./routes/cf-energy-economics'));
