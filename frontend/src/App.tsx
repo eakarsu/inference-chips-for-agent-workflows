@@ -13,6 +13,11 @@ import SearchPage from './pages/SearchPage';
 import AuditLogPage from './pages/AuditLogPage';
 import SampleDataPage from './pages/SampleDataPage';
 import Dashboard from './pages/Dashboard';
+import KvAllocationPage from './pages/KvAllocationPage';
+import MlperfPage from './pages/MlperfPage';
+import SpecDecodePage from './pages/SpecDecodePage';
+import CompilerPassPage from './pages/CompilerPassPage';
+import TracePage from './pages/TracePage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return localStorage.getItem('token') ? <>{children}</> : <Navigate to="/login" />;
@@ -37,6 +42,12 @@ export default function App() {
           <Route path="export" element={<ExportPage />} />
           <Route path="audit" element={<AuditLogPage />} />
           <Route path="sample-data" element={<SampleDataPage />} />
+          {/* Deep feature pages (audit 2026-05-14) */}
+          <Route path="kv-allocation" element={<KvAllocationPage />} />
+          <Route path="mlperf" element={<MlperfPage />} />
+          <Route path="spec-decode" element={<SpecDecodePage />} />
+          <Route path="compiler-pass" element={<CompilerPassPage />} />
+          <Route path="trace" element={<TracePage />} />
         </Route>
       </Routes>
     </BrowserRouter>
