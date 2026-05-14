@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const verifyToken = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
 router.get('/', verifyToken, async (req, res) => {
   try { const r = await db.query('SELECT s.*, w.name as workflow_name FROM steps s LEFT JOIN workflows w ON s.workflow_id = w.id ORDER BY s.workflow_id, s.position'); res.json(r.rows); } catch (e) { res.status(500).json({ error: e.message }); }
 });

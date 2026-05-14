@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const verifyToken = require('../middleware/auth');
+const { verifyToken } = require('../middleware/auth');
 
 // Single JWT-protected endpoint that returns the KPI block plus a recent
 // activity slice from audit_log. Each count is wrapped so a missing table
