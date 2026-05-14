@@ -30,14 +30,12 @@ echo "Installing frontend dependencies..."
 cd frontend && npm install && cd ..
 
 echo "Starting backend on port 3011..."
-cd backend && node server.js &
+(cd backend && node server.js) &
 BACKEND_PID=$!
-cd ..
 
 echo "Starting frontend on port 5175..."
-cd frontend && npm run dev &
+(cd frontend && npm run dev) &
 FRONTEND_PID=$!
-cd ..
 
 echo ""
 echo "ChipProfiler is running!"
