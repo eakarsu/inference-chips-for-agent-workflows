@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const verifyToken = require('../middleware/auth');
+const verifyToken = require("../middleware/auth");
 
 const TABLES = {
   chips: 'SELECT * FROM chips ORDER BY id',

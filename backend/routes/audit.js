@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const db = require('../db');
-const verifyToken = require('../middleware/auth');
+const verifyToken = require("../middleware/auth");
 
 // Lazy-create the audit_log table if missing (defensive — schema.sql also has it).
 async function ensureTable() {
