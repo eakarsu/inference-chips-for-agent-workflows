@@ -44,3 +44,10 @@ app.use('/api/feat-mlperf', require('./routes/feat-mlperf'));
 app.use('/api/feat-spec-decode', require('./routes/feat-spec-decode'));
 app.use('/api/feat-compiler-pass', require('./routes/feat-compiler-pass'));
 app.use('/api/feat-trace', require('./routes/feat-trace'));
+
+// Health + Custom Views (mounted BEFORE 404 catch-all)
+app.get('/api/health', (_req, res) => res.json({ status: 'ok', service: 'chipprofiler-backend' }));
+app.use('/api/custom-views', require('./routes/customViews'));
+
+// 404 catch-all for unknown /api routes
+app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));

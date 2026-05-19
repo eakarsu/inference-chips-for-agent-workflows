@@ -18,6 +18,7 @@ import MlperfPage from './pages/MlperfPage';
 import SpecDecodePage from './pages/SpecDecodePage';
 import CompilerPassPage from './pages/CompilerPassPage';
 import TracePage from './pages/TracePage';
+import CustomViewsPage from './pages/CustomViewsPage';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return localStorage.getItem('token') ? <>{children}</> : <Navigate to="/login" />;
@@ -48,6 +49,7 @@ export default function App() {
           <Route path="spec-decode" element={<SpecDecodePage />} />
           <Route path="compiler-pass" element={<CompilerPassPage />} />
           <Route path="trace" element={<TracePage />} />
+          <Route path="custom-views" element={<CustomViewsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
