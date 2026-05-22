@@ -46,6 +46,11 @@ export const api = {
   aiEnergyEfficiencyScorer: (d: unknown) => apiFetch('/ai/energy-efficiency-scorer', { method: 'POST', body: JSON.stringify(d) }),
   aiBenchmarkNarrator: (d: unknown) => apiFetch('/ai/benchmark-narrator', { method: 'POST', body: JSON.stringify(d) }),
   aiVendorRiskScorer: (d: unknown) => apiFetch('/ai/vendor-risk-scorer', { method: 'POST', body: JSON.stringify(d) }),
+  // Apply pass 7 backlog AI features
+  aiDeploymentStrategy: (d: unknown) => apiFetch('/ai/deployment-strategy', { method: 'POST', body: JSON.stringify(d) }),
+  aiScalingCurveForecaster: (d: unknown) => apiFetch('/ai/scaling-curve-forecaster', { method: 'POST', body: JSON.stringify(d) }),
+  aiQuantizationAdvisor: (d: unknown) => apiFetch('/ai/quantization-advisor', { method: 'POST', body: JSON.stringify(d) }),
+  aiWorkflowProfilerAnalyzer: (d: unknown) => apiFetch('/ai/workflow-profiler-analyzer', { method: 'POST', body: JSON.stringify(d) }),
   // Utilities
   exportTables: () => apiFetch('/export'),
   exportCsvUrl: (table: string) => `/api/export/${table}`,

@@ -109,5 +109,54 @@ Source: `_AUDIT/apply3_logs/dashboard_inference-chips-for-agent-workflows.md`.
   audit_events=1; missing-token → HTTP 401. Backend stopped, port freed.
 
 ## Backlog (deferred)
-- More AI features from the suggested list (deployment-strategy recommender, scaling-curve forecaster, model-quantization advisor, workflow-profiler analyzer) — pattern is in place; can be added by copying any new AI endpoint.
-- Pre-existing TS dead code (`ProfilerView.tsx`, `WorkflowList.tsx` referencing missing `App` exports) was left untouched per the "don't touch working code" rule.
+- ~~More AI features (deployment-strategy / scaling-curve / quantization / workflow-profiler)~~ — implemented in Apply pass 7 below.
+- Pre-existing TS dead code (`ProfilerView.tsx`, `WorkflowList.tsx` referencing missing `App` exports) was left untouched per the "don't touch working code" rule (TOO-RISKY: would require refactoring `App.tsx` exports the dead components reach for).
+
+## Apply pass 7 (full backlog implementation)
+
+Clears the 4 deferred AI features named in the prior backlog. Pattern matches
+existing AI routes (JWT + `hasKey()` 503 guard + `logAudit` on success).
+
+### 4 new AI endpoints (`backend/routes/ai.js`)
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/ai/deployment-strategy` | Multi-region topology + capacity + routing plan |
+| `POST /api/ai/scaling-curve-forecaster` | QPS / chip-count / cost curve over horizon |
+| `POST /api/ai/quantization-advisor` | FP8/INT8/INT4/AWQ/GPTQ recommendation with rollout plan |
+| `POST /api/ai/workflow-profiler-analyzer` | End-to-end agent workflow profiling + speedup levers |
+
+All 4 share the existing `/api/ai` mount, JWT, `aiUnavailable()` 503 guard, and
+`audit_log` write. No new dependencies. No DB migration required (uses existing
+`audit_log` table created in prior pass).
+
+### Frontend wiring
+- `api.ts` — added 4 wrappers: `aiDeploymentStrategy`, `aiScalingCurveForecaster`,
+  `aiQuantizationAdvisor`, `aiWorkflowProfilerAnalyzer`.
+- `AICenterPage.tsx` — 4 new tabs (Globe / LineChart / Binary / Workflow icons),
+  per-tab form inputs (regions, SLA p99, traffic pattern, QPS, growth %, horizon
+  months, model name + params + dtype + accuracy tolerance + target workload),
+  3 prefill samples per tab (12 new samples total: real chips H100/B200/MI300X/
+  MI325X/Groq/Trainium2 + real models Llama-3.1-70B/Mixtral-8x22B/Llama-3.2-3B).
+- `needsWorkflow` / `needsChip` flags extended to include the new tabs that
+  consume the workflow / chip selectors.
+
+### Constraints honored
+- `password` column preserved (no schema changes this pass).
+- No `npm install`; only pre-existing `lucide-react` icons used (verified Globe,
+  LineChart, Binary, Workflow declared in `lucide-react.d.ts`).
+- All 4 new routes guarded by `verifyToken`.
+- New routes mounted via existing `app.use('/api/ai', ...)` line in
+  `backend/server.js` (before the line-53 `/api` 404 catch-all).
+- Skipped pure NEEDS-CREDS items (none beyond the AI 503 pattern, which is the
+  project's standard) and TOO-RISKY items (pre-existing TS dead code in
+  `ProfilerView.tsx` / `WorkflowList.tsx`).
+- `node --check backend/routes/ai.js` → OK.
+- `tsc --noEmit` → no new errors in `AICenterPage.tsx` / `api.ts` (only the
+  pre-existing unrelated errors from prior passes remain).
+
+### Verification
+- Backend syntax: `node --check` passes for `backend/routes/ai.js`.
+- Frontend types: `tsc --noEmit` clean for changed files.
+- All 4 endpoints return HTTP 503 with the standard "Set OPENROUTER_API_KEY"
+  message when the key is unset, matching the established graceful-degradation
+  pattern.

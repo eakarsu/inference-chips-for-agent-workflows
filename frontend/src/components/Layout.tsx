@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { Cpu, Workflow, GitBranch, BarChart2, Globe, BookOpen, Sparkles, LogOut, Search, Download, FileClock, Database, LayoutDashboard, Trophy, Hammer, Activity, LayoutGrid } from 'lucide-react';
+import { Cpu, Workflow, GitBranch, BarChart2, Globe, BookOpen, Sparkles, LogOut, Search, Download, FileClock, Database, LayoutDashboard, Trophy, Hammer, Activity, LayoutGrid, Thermometer } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -69,6 +69,11 @@ export default function Layout() {
               className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-cyan-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>
               <LayoutGrid className="w-4 h-4" />
               Chip Views
+            </NavLink>
+            <NavLink to="/thermal-throttle"
+              className={({ isActive }) => `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800'}`}>
+              <Thermometer className="w-4 h-4" />
+              Thermal Guard
             </NavLink>
           </div>
           <div className="pt-3 mt-3 border-t border-gray-800">

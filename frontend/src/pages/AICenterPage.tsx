@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import AIResponse from '../components/AIResponse';
-import { Cpu, GitBranch, TrendingUp, Layers, DollarSign, Activity, Leaf, FileBarChart2, ShieldAlert } from 'lucide-react';
+import { Cpu, GitBranch, TrendingUp, Layers, DollarSign, Activity, Leaf, FileBarChart2, ShieldAlert, Globe, LineChart, Binary, Workflow } from 'lucide-react';
 
 const tabs = [
   { key: 'chip-recommendation', label: 'Chip Recommendation', icon: Cpu },
@@ -13,6 +13,11 @@ const tabs = [
   { key: 'energy-efficiency-scorer', label: 'Energy Efficiency', icon: Leaf },
   { key: 'benchmark-narrator', label: 'Benchmark Narrator', icon: FileBarChart2 },
   { key: 'vendor-risk-scorer', label: 'Vendor Risk', icon: ShieldAlert },
+  // Apply pass 7 backlog tabs
+  { key: 'deployment-strategy', label: 'Deployment Strategy', icon: Globe },
+  { key: 'scaling-curve-forecaster', label: 'Scaling Forecaster', icon: LineChart },
+  { key: 'quantization-advisor', label: 'Quantization Advisor', icon: Binary },
+  { key: 'workflow-profiler-analyzer', label: 'Workflow Profiler', icon: Workflow },
 ];
 
 export default function AICenterPage() {
@@ -38,6 +43,18 @@ export default function AICenterPage() {
   const [concurrency, setConcurrency] = useState('32');
   const [region, setRegion] = useState('us-west-2');
   const [horizonYears, setHorizonYears] = useState('3');
+  // Apply pass 7 backlog inputs
+  const [regionsList, setRegionsList] = useState('us-west-2,us-east-1,eu-west-1');
+  const [slaP99Ms, setSlaP99Ms] = useState('150');
+  const [trafficPattern, setTrafficPattern] = useState('diurnal, 3x peak vs trough, weekend dip');
+  const [currentQps, setCurrentQps] = useState('250');
+  const [growthRatePct, setGrowthRatePct] = useState('15');
+  const [horizonMonths, setHorizonMonths] = useState('12');
+  const [modelName, setModelName] = useState('Llama-3.1-70B-Instruct');
+  const [modelParamsB, setModelParamsB] = useState('70');
+  const [currentDtype, setCurrentDtype] = useState('fp16');
+  const [accuracyTolerancePct, setAccuracyTolerancePct] = useState('1.5');
+  const [targetWorkload, setTargetWorkload] = useState('agent loop with ReAct + tool use');
 
   useEffect(() => {
     Promise.all([api.getChips(), api.getWorkflows(), api.getSteps(), api.getBenchmarks()]).then(([c, w, s, b]) => {
@@ -108,6 +125,26 @@ export default function AICenterPage() {
       { label: 'AMD MI325X / 5yr', apply: () => { pickChip('MI325X'); setHorizonYears('5'); } },
       { label: 'Sohu (Etched) / 2yr', apply: () => { pickChip('Sohu'); setHorizonYears('2'); } },
     ],
+    'deployment-strategy': [
+      { label: 'RAG / 3-region / 150ms', apply: () => { pickWorkflow('rag'); pickChip('H100'); setRegionsList('us-west-2,us-east-1,eu-west-1'); setSlaP99Ms('150'); setTrafficPattern('diurnal, 3x peak vs trough, weekend dip'); } },
+      { label: 'Voice / 5-region / 80ms', apply: () => { pickWorkflow('voice'); pickChip('Groq'); setRegionsList('us-west-2,us-east-1,eu-west-1,ap-south-1,ap-southeast-1'); setSlaP99Ms('80'); setTrafficPattern('always-on streaming, bursty during business hours'); } },
+      { label: 'Multi-agent / 2-region / 300ms', apply: () => { pickWorkflow('multi-agent'); pickChip('B200'); setRegionsList('us-west-2,eu-west-1'); setSlaP99Ms('300'); setTrafficPattern('batchy, 10x spikes during marketing campaigns'); } },
+    ],
+    'scaling-curve-forecaster': [
+      { label: '250 QPS / 15% growth / 12mo', apply: () => { pickChip('H100'); pickWorkflow('rag'); setCurrentQps('250'); setGrowthRatePct('15'); setHorizonMonths('12'); } },
+      { label: '1000 QPS / 8% growth / 24mo', apply: () => { pickChip('B200'); pickWorkflow('multi-agent'); setCurrentQps('1000'); setGrowthRatePct('8'); setHorizonMonths('24'); } },
+      { label: '50 QPS / 40% growth / 18mo', apply: () => { pickChip('MI300X'); pickWorkflow('react'); setCurrentQps('50'); setGrowthRatePct('40'); setHorizonMonths('18'); } },
+    ],
+    'quantization-advisor': [
+      { label: 'Llama-3.1-70B FP16 -> FP8 on H100', apply: () => { pickChip('H100'); setModelName('Llama-3.1-70B-Instruct'); setModelParamsB('70'); setCurrentDtype('fp16'); setAccuracyTolerancePct('1.5'); setTargetWorkload('agent loop with ReAct + tool use'); } },
+      { label: 'Mixtral 8x22B BF16 -> AWQ on MI300X', apply: () => { pickChip('MI300X'); setModelName('Mixtral-8x22B-Instruct'); setModelParamsB('141'); setCurrentDtype('bf16'); setAccuracyTolerancePct('2.0'); setTargetWorkload('long-context RAG, 32K ctx'); } },
+      { label: 'Llama-3.2-3B FP16 -> INT4 on Trainium2', apply: () => { pickChip('Trainium2'); setModelName('Llama-3.2-3B-Instruct'); setModelParamsB('3'); setCurrentDtype('fp16'); setAccuracyTolerancePct('3.0'); setTargetWorkload('edge / on-device voice assistant'); } },
+    ],
+    'workflow-profiler-analyzer': [
+      { label: 'ReAct loop on H100', apply: () => { pickWorkflow('react'); pickChip('H100'); } },
+      { label: 'Multi-agent on B200', apply: () => { pickWorkflow('multi-agent'); pickChip('B200'); } },
+      { label: 'Long-context RAG on MI325X', apply: () => { pickWorkflow('long-context'); pickChip('MI325X'); } },
+    ],
   };
   const currentSamples = samplesByTab[activeTab] || [];
 
@@ -141,8 +178,39 @@ export default function AICenterPage() {
         res = await api.aiEnergyEfficiencyScorer({ chip: selectedChip, workflow: selectedWorkflow, region });
       } else if (activeTab === 'benchmark-narrator') {
         res = await api.aiBenchmarkNarrator({ benchmarks: benchmarks.slice(0, 12) });
-      } else {
+      } else if (activeTab === 'vendor-risk-scorer') {
         res = await api.aiVendorRiskScorer({ chip: selectedChip, deployment_horizon_years: Number(horizonYears) });
+      } else if (activeTab === 'deployment-strategy') {
+        res = await api.aiDeploymentStrategy({
+          workflow: selectedWorkflow,
+          chip: selectedChip,
+          regions: regionsList.split(',').map(s => s.trim()).filter(Boolean),
+          sla_p99_ms: Number(slaP99Ms),
+          traffic_pattern: trafficPattern,
+        });
+      } else if (activeTab === 'scaling-curve-forecaster') {
+        res = await api.aiScalingCurveForecaster({
+          chip: selectedChip,
+          workflow: selectedWorkflow,
+          current_qps: Number(currentQps),
+          growth_rate_pct_monthly: Number(growthRatePct),
+          horizon_months: Number(horizonMonths),
+        });
+      } else if (activeTab === 'quantization-advisor') {
+        res = await api.aiQuantizationAdvisor({
+          chip: selectedChip,
+          model_name: modelName,
+          model_params_b: Number(modelParamsB),
+          current_dtype: currentDtype,
+          accuracy_tolerance_pct: Number(accuracyTolerancePct),
+          target_workload: targetWorkload,
+        });
+      } else {
+        res = await api.aiWorkflowProfilerAnalyzer({
+          workflow: selectedWorkflow,
+          steps: workflowSteps.length ? workflowSteps : steps.slice(0, 12),
+          chip: selectedChip,
+        });
       }
       setResult(res.result);
       setTimestamp(new Date().toLocaleTimeString());
@@ -157,8 +225,8 @@ export default function AICenterPage() {
     finally { setLoading(false); }
   };
 
-  const needsWorkflow = ['chip-recommendation','performance-prediction','bottleneck-analysis','latency-cost-optimizer','throughput-predictor','energy-efficiency-scorer'].includes(activeTab);
-  const needsChip = ['performance-prediction','throughput-predictor','energy-efficiency-scorer','vendor-risk-scorer'].includes(activeTab);
+  const needsWorkflow = ['chip-recommendation','performance-prediction','bottleneck-analysis','latency-cost-optimizer','throughput-predictor','energy-efficiency-scorer','deployment-strategy','scaling-curve-forecaster','workflow-profiler-analyzer'].includes(activeTab);
+  const needsChip = ['performance-prediction','throughput-predictor','energy-efficiency-scorer','vendor-risk-scorer','deployment-strategy','scaling-curve-forecaster','quantization-advisor','workflow-profiler-analyzer'].includes(activeTab);
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
@@ -266,6 +334,71 @@ export default function AICenterPage() {
             <label className="block text-xs text-gray-400 mb-1">Deployment Horizon (years)</label>
             <input type="number" value={horizonYears} onChange={e => setHorizonYears(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
           </div>
+        )}
+        {activeTab === 'deployment-strategy' && (
+          <>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Target Regions (comma-sep)</label>
+              <input value={regionsList} onChange={e => setRegionsList(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">SLA p99 (ms)</label>
+                <input type="number" value={slaP99Ms} onChange={e => setSlaP99Ms(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Traffic Pattern</label>
+                <input value={trafficPattern} onChange={e => setTrafficPattern(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              </div>
+            </div>
+          </>
+        )}
+        {activeTab === 'scaling-curve-forecaster' && (
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Current QPS</label>
+              <input type="number" value={currentQps} onChange={e => setCurrentQps(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Growth % / month</label>
+              <input type="number" value={growthRatePct} onChange={e => setGrowthRatePct(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Horizon (months)</label>
+              <input type="number" value={horizonMonths} onChange={e => setHorizonMonths(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            </div>
+          </div>
+        )}
+        {activeTab === 'quantization-advisor' && (
+          <>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Model Name</label>
+                <input value={modelName} onChange={e => setModelName(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Params (B)</label>
+                <input type="number" value={modelParamsB} onChange={e => setModelParamsB(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Current dtype</label>
+                <input value={currentDtype} onChange={e => setCurrentDtype(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-400 mb-1">Accuracy tolerance (% drop)</label>
+                <input type="number" value={accuracyTolerancePct} onChange={e => setAccuracyTolerancePct(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Target Workload</label>
+              <input value={targetWorkload} onChange={e => setTargetWorkload(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            </div>
+          </>
+        )}
+        {activeTab === 'workflow-profiler-analyzer' && workflowSteps.length > 0 && (
+          <p className="text-gray-500 text-xs">{workflowSteps.length} steps loaded for selected workflow.</p>
         )}
         <button onClick={run} disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
           {loading ? 'Analyzing...' : 'Run AI Analysis'}

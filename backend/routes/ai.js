@@ -153,4 +153,62 @@ router.post('/vendor-risk-scorer', verifyToken, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ===== Apply pass 7 backlog AI features (4) =====
+
+// 6. Deployment Strategy Recommender
+router.post('/deployment-strategy', verifyToken, async (req, res) => {
+  if (!hasKey()) return aiUnavailable(res);
+  const { workflow, chip, regions, sla_p99_ms, traffic_pattern } = req.body;
+  try {
+    const result = await callAI(
+      `Recommend a multi-region deployment strategy for this workload.\n\nWorkflow: ${JSON.stringify(workflow)}\nChip: ${JSON.stringify(chip)}\nTarget Regions: ${JSON.stringify(regions)}\nSLA p99 (ms): ${sla_p99_ms}\nTraffic Pattern: ${traffic_pattern}\n\nProvide:\n1. **Topology** - active-active vs active-passive, region count, autoscaling rules\n2. **Capacity per Region** - chip count + headroom for spikes\n3. **Routing** - geo-DNS / anycast / weighted, failover behavior\n4. **Cold Start Mitigation** - keep-warm, pre-loaded weights, KV pinning\n5. **Cost vs Latency Tradeoff** - 3 tiered options (lean / balanced / gold)\n6. **Operational Risks** - region outage, capacity allocation, quota traps\n7. **Recommended Plan** - one-paragraph executive summary`,
+      'You are a principal SRE specializing in low-latency multi-region LLM inference deployments.'
+    );
+    await logAudit(req, 'ai.deployment-strategy', { workflow_name: workflow?.name, chip_name: chip?.name });
+    res.json({ result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 7. Scaling Curve Forecaster
+router.post('/scaling-curve-forecaster', verifyToken, async (req, res) => {
+  if (!hasKey()) return aiUnavailable(res);
+  const { chip, workflow, growth_rate_pct_monthly, horizon_months, current_qps } = req.body;
+  try {
+    const result = await callAI(
+      `Forecast scaling needs over time.\n\nChip: ${JSON.stringify(chip)}\nWorkflow: ${JSON.stringify(workflow)}\nCurrent QPS: ${current_qps}\nGrowth (%/month): ${growth_rate_pct_monthly}\nHorizon (months): ${horizon_months}\n\nProvide:\n1. **QPS Curve** - month-by-month projected demand\n2. **Chip Count Curve** - units required per month, with utilization target\n3. **Inflection Points** - where current architecture breaks (KV, mem BW, NVLink)\n4. **Procurement Lead Time** - when to place orders, given typical vendor lead\n5. **Alternative Strategies** - sharding, batching changes, model distillation, vendor switch\n6. **Cost Projection** - run-rate per month at 6/12/24 months\n7. **Risk Bands** - bear/base/bull case with explicit assumptions`,
+      'You are a capacity planning engineer for hyperscale AI inference fleets.'
+    );
+    await logAudit(req, 'ai.scaling-curve-forecaster', { chip_name: chip?.name, horizon_months });
+    res.json({ result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 8. Model Quantization Advisor
+router.post('/quantization-advisor', verifyToken, async (req, res) => {
+  if (!hasKey()) return aiUnavailable(res);
+  const { chip, model_name, model_params_b, current_dtype, accuracy_tolerance_pct, target_workload } = req.body;
+  try {
+    const result = await callAI(
+      `Advise on quantization strategy for this model on this chip.\n\nChip: ${JSON.stringify(chip)}\nModel: ${model_name} (${model_params_b}B)\nCurrent dtype: ${current_dtype}\nAccuracy tolerance (% drop): ${accuracy_tolerance_pct}\nTarget Workload: ${target_workload}\n\nProvide:\n1. **Recommended Quantization** - FP8 / INT8 / INT4 / W8A8 / AWQ / GPTQ / SmoothQuant / NF4\n2. **Why this fits** - chip support (FP8 tensor cores, sparsity, etc.)\n3. **Expected Gains** - throughput, latency, memory footprint, KV reduction\n4. **Accuracy Impact** - expected % drop per benchmark family (MMLU / HumanEval / GSM8K)\n5. **Calibration Plan** - dataset size, num samples, layers to skip\n6. **Tooling** - TensorRT-LLM Quantizer / llm-compressor / AutoGPTQ / bitsandbytes\n7. **Rollout Strategy** - shadow eval, canary % traffic, rollback trigger\n8. **Final Recommendation** - one-line verdict`,
+      'You are a model quantization specialist with deep knowledge of low-precision LLM inference on modern accelerators.'
+    );
+    await logAudit(req, 'ai.quantization-advisor', { chip_name: chip?.name, model_name });
+    res.json({ result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 9. Workflow Profiler Analyzer
+router.post('/workflow-profiler-analyzer', verifyToken, async (req, res) => {
+  if (!hasKey()) return aiUnavailable(res);
+  const { workflow, steps: workflowSteps, chip } = req.body;
+  try {
+    const result = await callAI(
+      `Profile this agent workflow end-to-end and surface optimization opportunities.\n\nWorkflow: ${JSON.stringify(workflow)}\nSteps: ${JSON.stringify(workflowSteps)}\nChip: ${JSON.stringify(chip)}\n\nProvide:\n1. **Latency Breakdown** - %time per step type (model_call / tool_use / memory_read / cpu_compute)\n2. **Hot Path** - top 3 steps consuming the most time\n3. **Hidden Waste** - redundant tool calls, repeated prompts, unnecessary re-encoding\n4. **Parallelization Opportunities** - which steps can fan out, what blocks\n5. **Caching Wins** - prompt cache, KV reuse, tool-result memoization potential\n6. **Hardware Match** - is this chip the right tool for the hot path?\n7. **Quick Wins** - 3 changes deliverable in 1 week\n8. **Strategic Refactors** - 2 deeper changes for 2x+ improvement\n9. **Estimated Combined Speedup** - realistic upper bound`,
+      'You are a senior performance engineer profiling LLM agent loops and finding the levers that move latency.'
+    );
+    await logAudit(req, 'ai.workflow-profiler-analyzer', { workflow_name: workflow?.name, steps: workflowSteps?.length });
+    res.json({ result });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 module.exports = router;

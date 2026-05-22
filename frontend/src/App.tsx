@@ -20,6 +20,12 @@ import CompilerPassPage from './pages/CompilerPassPage';
 import TracePage from './pages/TracePage';
 import CustomViewsPage from './pages/CustomViewsPage';
 
+import CodexCustomVizFeature from './pages/CodexCustomVizFeature';
+import CodexOperationsFeature from './pages/CodexOperationsFeature';
+
+import TimelineView from './pages/TimelineView';
+import ThermalThrottleGuard from './pages/ThermalThrottleGuard';
+
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   return localStorage.getItem('token') ? <>{children}</> : <Navigate to="/login" />;
 }
@@ -28,6 +34,10 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/insights/timeline" element={<TimelineView />} />
+        <Route path="/codex/custom-viz" element={<CodexCustomVizFeature />} />
+        <Route path="/codex/operations" element={<CodexOperationsFeature />} />
+
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<PrivateRoute><Layout /></PrivateRoute>}>
           <Route index element={<Navigate to="/dashboard" />} />
@@ -50,6 +60,7 @@ export default function App() {
           <Route path="compiler-pass" element={<CompilerPassPage />} />
           <Route path="trace" element={<TracePage />} />
           <Route path="custom-views" element={<CustomViewsPage />} />
+          <Route path="thermal-throttle" element={<ThermalThrottleGuard />} />
         </Route>
       </Routes>
     </BrowserRouter>
