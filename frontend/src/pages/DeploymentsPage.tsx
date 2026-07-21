@@ -1,146 +1,46 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Plus, Search, Server, X, Edit2, Trash2 } from 'lucide-react';
+import { Activity, Cpu, GitBranch, Plus, RefreshCw, ShieldAlert } from 'lucide-react';
 
-interface Deployment {
-  id: number; chip_id: number; chip_name: string; customer: string; use_case: string;
-  deployed_at: string; performance_score: number; cost_savings_pct: number;
-  status: string; region: string; scale_units: number;
-}
+type Profile={id:number;profile_code:string;chip_name:string;manufacturer:string;memory_gb:number;peak_power_w:number;status:string};
+type Evaluation={id:number;profile_code:string;chip_name:string;status:string;blockers:string[]};
+type Release={id:number;release_code:string;workflow_name:string;version_label:string;status:string;version:number;required_precision:string;context_tokens:number;required_memory_gb:number;max_p95_latency_ms:number;min_throughput_rps:number;max_power_w:number;max_error_rate_pct:number;canary_min_samples:number;canary_duration_minutes:number;evaluations?:Evaluation[]};
+type Deployment={id:number;deployment_code:string;release_code:string;workflow_name:string;chip_name:string;profile_code:string;status:string;version:number;traffic_pct:number;region:string;environment:string;telemetry?:Array<Record<string,unknown>>;events?:Array<Record<string,unknown>>};
+type User={role?:string};
 
-const statusColors: Record<string, string> = {
-  active: 'bg-green-900 text-green-300', deprecated: 'bg-gray-700 text-gray-400',
-  evaluation: 'bg-yellow-900 text-yellow-300', cancelled: 'bg-red-900 text-red-300',
-};
+const RELEASE_ATTESTATION='I verified the immutable workflow definition and release constraints';
+const APPROVAL_ATTESTATION='I approve this measured placement for canary deployment';
+const OVERRIDE_ATTESTATION='I accept the documented placement risk for this exception';
+const PROMOTION_ATTESTATION='I verified the canary evidence and approve production promotion';
+const ROLLBACK_ATTESTATION='I authorize immediate rollback and preservation of deployment evidence';
+const badge:Record<string,string>={DRAFT:'bg-gray-800 text-gray-300',RELEASED:'bg-blue-950 text-blue-300',EVALUATED:'bg-violet-950 text-violet-300',CANARY:'bg-amber-950 text-amber-300',PRODUCTION:'bg-emerald-950 text-emerald-300',ROLLED_BACK:'bg-red-950 text-red-300',APPROVED:'bg-emerald-950 text-emerald-300',OVERRIDDEN:'bg-orange-950 text-orange-300',REJECTED:'bg-red-950 text-red-300',PENDING:'bg-gray-800 text-gray-300'};
+const button='px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-40';
+function ask(label:string,defaultValue:string){const value=window.prompt(label,defaultValue);if(value===null)throw new Error('Action cancelled');return value.trim();}
+function askNumber(label:string,defaultValue:string){const value=Number(ask(label,defaultValue));if(!Number.isFinite(value))throw new Error(`${label} must be numeric`);return value;}
 
-function DeployForm({ dep, chips, onSave, onClose }: { dep?: Deployment | null; chips: {id:number;name:string}[]; onSave: () => void; onClose: () => void }) {
-  const [form, setForm] = useState({
-    chip_id: dep?.chip_id || '', customer: dep?.customer || '', use_case: dep?.use_case || '',
-    deployed_at: dep?.deployed_at?.split('T')[0] || '', performance_score: dep?.performance_score || '',
-    cost_savings_pct: dep?.cost_savings_pct || '', status: dep?.status || 'active',
-    region: dep?.region || '', scale_units: dep?.scale_units || '',
-  });
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      if (dep) await api.updateDeployment(dep.id, form); else await api.createDeployment(form);
-      onSave();
-    } catch (err) { console.error(err); }
-  };
-  return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-gray-900 rounded-2xl border border-gray-800 w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-800">
-          <h2 className="text-white font-semibold">{dep ? 'Edit Deployment' : 'New Deployment'}</h2>
-          <button onClick={onClose}><X className="w-5 h-5 text-gray-400 hover:text-white" /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2"><label className="block text-xs text-gray-400 mb-1">Chip *</label>
-              <select required value={form.chip_id} onChange={e => setForm({...form,chip_id:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
-                <option value="">Select chip...</option>{chips.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</select></div>
-            <div className="col-span-2"><label className="block text-xs text-gray-400 mb-1">Customer *</label>
-              <input required value={form.customer} onChange={e => setForm({...form,customer:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-            <div className="col-span-2"><label className="block text-xs text-gray-400 mb-1">Use Case</label>
-              <input value={form.use_case} onChange={e => setForm({...form,use_case:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-            <div><label className="block text-xs text-gray-400 mb-1">Status</label>
-              <select value={form.status} onChange={e => setForm({...form,status:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
-                {['active','evaluation','deprecated','cancelled'].map(s => <option key={s} value={s}>{s}</option>)}</select></div>
-            <div><label className="block text-xs text-gray-400 mb-1">Region</label>
-              <input value={form.region} onChange={e => setForm({...form,region:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-            <div><label className="block text-xs text-gray-400 mb-1">Performance Score</label>
-              <input type="number" step="0.01" value={form.performance_score} onChange={e => setForm({...form,performance_score:parseFloat(e.target.value)})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-            <div><label className="block text-xs text-gray-400 mb-1">Cost Savings (%)</label>
-              <input type="number" value={form.cost_savings_pct} onChange={e => setForm({...form,cost_savings_pct:parseInt(e.target.value)})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-            <div><label className="block text-xs text-gray-400 mb-1">Scale Units</label>
-              <input type="number" value={form.scale_units} onChange={e => setForm({...form,scale_units:parseInt(e.target.value)})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-            <div><label className="block text-xs text-gray-400 mb-1">Deployed At</label>
-              <input type="date" value={form.deployed_at} onChange={e => setForm({...form,deployed_at:e.target.value})} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" /></div>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="submit" className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white py-2 rounded-lg text-sm font-medium">Save</button>
-            <button type="button" onClick={onClose} className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded-lg text-sm">Cancel</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
+export default function DeploymentsPage(){
+  const user:User=JSON.parse(localStorage.getItem('user')||'{}');
+  const [profiles,setProfiles]=useState<Profile[]>([]);const [releases,setReleases]=useState<Release[]>([]);const [deployments,setDeployments]=useState<Deployment[]>([]);
+  const [selectedRelease,setSelectedRelease]=useState<Release|null>(null);const [selectedDeployment,setSelectedDeployment]=useState<Deployment|null>(null);const [error,setError]=useState('');const [busy,setBusy]=useState(false);
+  const canAuthor=['AUTHOR','ADMIN'].includes(user.role||'');const canMeasure=['PERFORMANCE','ADMIN'].includes(user.role||'');const canApprove=['APPROVER','ADMIN'].includes(user.role||'');
+  const load=async()=>{const [p,r,d]=await Promise.all([api.governance.profiles(),api.governance.releases(),api.governance.deployments()]);setProfiles(p);setReleases(r);setDeployments(d);if(selectedRelease)setSelectedRelease(await api.governance.release(selectedRelease.id));if(selectedDeployment)setSelectedDeployment(await api.governance.deployment(selectedDeployment.id));};
+  useEffect(()=>{load().catch((caught:Error)=>setError(caught.message));},[]);
+  const run=async(task:()=>Promise<unknown>)=>{setBusy(true);setError('');try{await task();await load();}catch(caught){setError(caught instanceof Error?caught.message:'Action failed');}finally{setBusy(false);}};
 
-export default function DeploymentsPage() {
-  const [deployments, setDeployments] = useState<Deployment[]>([]);
-  const [chips, setChips] = useState<{id:number;name:string}[]>([]);
-  const [search, setSearch] = useState('');
-  const [selected, setSelected] = useState<Deployment | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [editDep, setEditDep] = useState<Deployment | null>(null);
+  const createProfile=()=>run(()=>api.governance.createProfile({profileCode:ask('Profile code','PROFILE-001'),chipName:ask('Chip name','H100 SXM'),manufacturer:ask('Manufacturer','NVIDIA'),acceleratorCount:askNumber('Accelerator count','1'),memoryGb:askNumber('Total memory GB','80'),peakPowerW:askNumber('Peak power W','700'),maxContextTokens:askNumber('Maximum context tokens','32768'),supportedPrecisions:ask('Supported precision list','fp16,int8').split(',').map((item)=>item.trim()),sourceSystem:ask('Authoritative source system','vendor-spec-registry'),sourceRecordId:ask('Source record ID','SPEC-001'),externalEventId:crypto.randomUUID(),evidenceUrl:ask('Evidence HTTPS URL','https://evidence.example.test/profiles/PROFILE-001'),publishedAt:new Date().toISOString()}));
+  const createRelease=()=>run(()=>api.governance.createRelease({releaseCode:ask('Release code','REL-001'),workflowName:ask('Workflow name','Research agent'),versionLabel:ask('Version label','1.0.0'),definition:{contextTokens:askNumber('Context tokens','8192'),steps:JSON.parse(ask('Steps JSON','[{"id":"plan","type":"model_call","timeoutMs":10000},{"id":"tool","type":"tool_call","timeoutMs":20000}]'))},requiredPrecision:ask('Required precision','fp16'),requiredMemoryGb:askNumber('Required memory GB','40'),maxP95LatencyMs:askNumber('Maximum p95 latency ms','100'),minThroughputRps:askNumber('Minimum throughput rps','20'),maxPowerW:askNumber('Maximum power W','500'),maxErrorRatePct:askNumber('Maximum error rate %','1'),canaryMinSamples:askNumber('Canary sample floor','100'),canaryDurationMinutes:askNumber('Canary duration minutes','5')}));
+  const releaseWorkflow=()=>selectedRelease&&run(()=>api.governance.releaseWorkflow(selectedRelease.id,{expectedVersion:selectedRelease.version,attestation:RELEASE_ATTESTATION}));
+  const evaluate=()=>selectedRelease&&run(()=>api.governance.evaluate(selectedRelease.id,{hardwareProfileId:askNumber('Hardware profile ID',String(profiles[0]?.id||'')),externalEventId:crypto.randomUUID(),sourceSystem:ask('Benchmark source system','signed-benchmark-lab'),sourceRecordId:ask('Benchmark record ID','BENCH-001'),evidenceUrl:ask('Benchmark evidence URL','https://evidence.example.test/benchmarks/BENCH-001'),observedAt:new Date().toISOString(),latencyP95Ms:askNumber('Measured p95 latency ms','90'),throughputRps:askNumber('Measured throughput rps','25'),powerW:askNumber('Measured power W','450'),peakMemoryGb:askNumber('Peak memory GB','50'),errorRatePct:askNumber('Error rate %','0.2'),sampleCount:askNumber('Benchmark samples','200')}));
+  const decide=(evaluation:Evaluation,decision:'APPROVE'|'OVERRIDE'|'REJECT')=>run(()=>api.governance.decideEvaluation(evaluation.id,{decision,attestation:decision==='APPROVE'?APPROVAL_ATTESTATION:decision==='OVERRIDE'?OVERRIDE_ATTESTATION:undefined,reason:decision==='APPROVE'?undefined:ask(decision==='OVERRIDE'?'Risk rationale (40+ chars)':'Rejection reason (20+ chars)','Documented independent review decision and supporting evidence.')}));
+  const startCanary=()=>selectedRelease&&run(()=>{const evaluation=selectedRelease.evaluations?.find((item)=>['APPROVED','OVERRIDDEN'].includes(item.status));if(!evaluation)throw new Error('No approved placement evaluation');return api.governance.createDeployment({deploymentCode:ask('Deployment code','DEP-001'),evaluationId:evaluation.id,environment:ask('Environment','production-canary'),region:ask('Region','us-east'),trafficPct:askNumber('Canary traffic percent (max 10)','5')});});
+  const telemetry=()=>selectedDeployment&&run(()=>{const capturedAt=new Date().toISOString();return api.governance.telemetry(selectedDeployment.id,[['latency_p95_ms',askNumber('Runtime p95 latency ms','90'),'ms'],['throughput_rps',askNumber('Runtime throughput rps','25'),'rps'],['power_w',askNumber('Runtime power W','450'),'W'],['error_rate_pct',askNumber('Runtime error rate %','0.2'),'%'],['sample_count',askNumber('Runtime sample count','200'),'count']].map(([metric,value,unit])=>({externalEventId:crypto.randomUUID(),sourceSystem:'operator-console',metric,value,unit,capturedAt})));});
+  const promote=()=>selectedDeployment&&run(()=>api.governance.deploymentAction(selectedDeployment.id,'promote',{expectedVersion:selectedDeployment.version,attestation:PROMOTION_ATTESTATION}));
+  const rollback=()=>selectedDeployment&&run(()=>api.governance.deploymentAction(selectedDeployment.id,'rollback',{expectedVersion:selectedDeployment.version,attestation:ROLLBACK_ATTESTATION,reason:ask('Rollback reason (20+ chars)','Runtime evidence or downstream safety condition requires immediate rollback.')}));
 
-  const load = async () => {
-    const [d, c] = await Promise.all([api.getDeployments(), api.getChips()]);
-    setDeployments(d); setChips(c);
-  };
-  useEffect(() => { load(); }, []);
-
-  const filtered = deployments.filter(d => d.customer?.toLowerCase().includes(search.toLowerCase()) || d.chip_name?.toLowerCase().includes(search.toLowerCase()) || d.use_case?.toLowerCase().includes(search.toLowerCase()));
-
-  return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Deployments</h1>
-          <p className="text-gray-400 text-sm mt-1">{deployments.length} deployments | {deployments.filter(d => d.status === 'active').length} active</p>
-        </div>
-        <button onClick={() => { setEditDep(null); setShowForm(true); }} className="flex items-center gap-2 bg-cyan-600 hover:bg-cyan-700 text-white px-4 py-2 rounded-lg text-sm font-medium">
-          <Plus className="w-4 h-4" /> New Deployment
-        </button>
-      </div>
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search deployments..."
-          className="w-full bg-gray-900 border border-gray-800 rounded-lg pl-10 pr-4 py-2.5 text-white text-sm focus:outline-none focus:border-cyan-500" />
-      </div>
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
-        <table className="w-full">
-          <thead><tr className="border-b border-gray-800">{['Customer','Chip','Use Case','Status','Perf Score','Cost Savings','Region','Scale'].map(h => <th key={h} className="px-4 py-3 text-left text-xs text-gray-500 font-medium uppercase tracking-wider">{h}</th>)}</tr></thead>
-          <tbody>
-            {filtered.map(d => (
-              <tr key={d.id} onClick={() => setSelected(d)} className="border-b border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors">
-                <td className="px-4 py-3"><div className="flex items-center gap-2"><Server className="w-4 h-4 text-cyan-400" /><p className="text-white text-sm">{d.customer}</p></div></td>
-                <td className="px-4 py-3 text-gray-300 text-sm">{d.chip_name}</td>
-                <td className="px-4 py-3 text-gray-400 text-xs max-w-[160px] truncate">{d.use_case}</td>
-                <td className="px-4 py-3"><span className={`px-2 py-0.5 rounded text-xs font-medium ${statusColors[d.status] || 'bg-gray-700 text-gray-300'}`}>{d.status}</span></td>
-                <td className="px-4 py-3 text-cyan-300 text-sm font-medium">{Number(d.performance_score).toFixed(2)}</td>
-                <td className="px-4 py-3 text-green-400 text-sm">{d.cost_savings_pct}%</td>
-                <td className="px-4 py-3 text-gray-400 text-sm">{d.region}</td>
-                <td className="px-4 py-3 text-gray-300 text-sm">{d.scale_units?.toLocaleString()}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filtered.length === 0 && <div className="text-center py-12 text-gray-600">No deployments found</div>}
-      </div>
-      {selected && !showForm && (
-        <div className="fixed inset-y-0 right-0 w-1/2 bg-gray-900 border-l border-gray-800 z-40 overflow-y-auto">
-          <div className="p-6 border-b border-gray-800 flex items-center justify-between">
-            <div><h2 className="text-white font-semibold text-lg">{selected.customer}</h2><p className="text-gray-400 text-sm">{selected.chip_name} · {selected.region}</p></div>
-            <div className="flex items-center gap-2">
-              <button onClick={() => { setEditDep(selected); setShowForm(true); }} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"><Edit2 className="w-4 h-4" /></button>
-              <button onClick={async () => { if (!confirm('Delete?')) return; await api.deleteDeployment(selected.id); setSelected(null); load(); }} className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded-lg"><Trash2 className="w-4 h-4" /></button>
-              <button onClick={() => setSelected(null)} className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg"><X className="w-5 h-5" /></button>
-            </div>
-          </div>
-          <div className="p-6 space-y-4">
-            <span className={`px-2 py-1 rounded text-xs font-medium ${statusColors[selected.status] || 'bg-gray-700 text-gray-300'}`}>{selected.status}</span>
-            <div className="grid grid-cols-2 gap-3">
-              {[['Chip', selected.chip_name],['Region', selected.region],['Performance Score', Number(selected.performance_score).toFixed(2)],['Cost Savings', `${selected.cost_savings_pct}%`],['Scale Units', selected.scale_units?.toLocaleString()],['Deployed', selected.deployed_at?.split('T')[0]]].map(([l, v]) => (
-                <div key={String(l)} className="bg-gray-800 rounded-lg p-3"><p className="text-gray-500 text-xs">{l}</p><p className="text-white font-medium mt-1 text-sm">{v}</p></div>
-              ))}
-            </div>
-            {selected.use_case && <div><p className="text-gray-500 text-xs mb-1">Use Case</p><p className="text-gray-300 text-sm">{selected.use_case}</p></div>}
-          </div>
-        </div>
-      )}
-      {showForm && <DeployForm dep={editDep} chips={chips} onClose={() => { setShowForm(false); setEditDep(null); }} onSave={() => { setShowForm(false); setEditDep(null); setSelected(null); load(); }} />}
-    </div>
-  );
+  return <div className="p-6 max-w-[1500px] mx-auto"><div className="flex justify-between items-end mb-6"><div><h1 className="text-2xl font-bold text-white">Governed workflow placement</h1><p className="text-sm text-gray-400 mt-1">Immutable release → measured placement → canary evidence → promotion or rollback</p></div><div className="flex gap-2"><button className={`${button} bg-gray-800 text-gray-200`} onClick={()=>load()}><RefreshCw className="w-4 h-4" /></button>{canMeasure&&<button className={`${button} bg-indigo-700 text-white flex gap-2`} onClick={createProfile}><Cpu className="w-4 h-4" />Profile</button>}{canAuthor&&<button className={`${button} bg-cyan-700 text-white flex gap-2`} onClick={createRelease}><Plus className="w-4 h-4" />Release</button>}</div></div>
+  {error&&<div role="alert" className="mb-4 border border-red-900 bg-red-950/40 text-red-300 p-3 rounded-lg text-sm">{error}</div>}
+  <div className="grid grid-cols-12 gap-5"><section className="col-span-4 bg-gray-900 border border-gray-800 rounded-xl overflow-hidden"><header className="p-4 border-b border-gray-800 text-white font-medium">Workflow releases</header>{releases.map((release)=><button key={release.id} onClick={()=>api.governance.release(release.id).then(setSelectedRelease).catch((caught:Error)=>setError(caught.message))} className="w-full text-left p-4 border-b border-gray-800 hover:bg-gray-800"><div className="flex justify-between"><span className="text-white text-sm">{release.release_code}</span><span className={`px-2 py-1 rounded text-xs ${badge[release.status]}`}>{release.status}</span></div><div className="text-gray-500 text-xs mt-1">{release.workflow_name} · {release.version_label} · v{release.version}</div></button>)}</section>
+  <section className="col-span-4 bg-gray-900 border border-gray-800 rounded-xl min-h-[540px]"><header className="p-4 border-b border-gray-800 text-white font-medium">Release evidence</header>{!selectedRelease?<div className="p-8 text-gray-600 text-sm">Select a release.</div>:<div className="p-4 space-y-4"><div><div className="text-white font-semibold">{selectedRelease.release_code}</div><div className="text-xs text-gray-500">{selectedRelease.required_precision} · {selectedRelease.context_tokens} tokens · {selectedRelease.required_memory_gb} GB</div></div><div className="grid grid-cols-2 gap-2 text-xs">{[['p95',`≤ ${selectedRelease.max_p95_latency_ms} ms`],['Throughput',`≥ ${selectedRelease.min_throughput_rps} rps`],['Power',`≤ ${selectedRelease.max_power_w} W`],['Errors',`≤ ${selectedRelease.max_error_rate_pct}%`]].map(([label,value])=><div key={label} className="bg-gray-950 p-2 rounded"><div className="text-gray-600">{label}</div><div className="text-gray-200">{value}</div></div>)}</div><div className="flex flex-wrap gap-2">{canAuthor&&selectedRelease.status==='DRAFT'&&<button disabled={busy} className={`${button} bg-blue-700 text-white`} onClick={releaseWorkflow}>Release</button>}{canMeasure&&selectedRelease.status==='RELEASED'&&<button disabled={busy||!profiles.length} className={`${button} bg-violet-700 text-white`} onClick={evaluate}>Measure placement</button>}{canAuthor&&selectedRelease.status==='EVALUATED'&&<button disabled={busy} className={`${button} bg-amber-700 text-white`} onClick={startCanary}>Start canary</button>}</div><div><div className="text-xs uppercase text-gray-500 mb-2">Placement evaluations</div>{selectedRelease.evaluations?.map((evaluation)=><div key={evaluation.id} className="border border-gray-800 rounded p-3 mb-2"><div className="flex justify-between"><span className="text-gray-200 text-sm">{evaluation.profile_code} · {evaluation.chip_name}</span><span className={`px-2 py-1 rounded text-xs ${badge[evaluation.status]}`}>{evaluation.status}</span></div>{evaluation.blockers.length>0&&<div className="text-xs text-red-400 mt-2">Blockers: {evaluation.blockers.join(', ')}</div>}{canApprove&&evaluation.status==='PENDING'&&<div className="flex gap-2 mt-2"><button className={`${button} bg-emerald-800 text-white`} onClick={()=>decide(evaluation,'APPROVE')}>Approve</button>{evaluation.blockers.length>0&&<button className={`${button} bg-orange-800 text-white`} onClick={()=>decide(evaluation,'OVERRIDE')}>Override</button>}<button className={`${button} bg-red-900 text-white`} onClick={()=>decide(evaluation,'REJECT')}>Reject</button></div>}</div>)}</div></div>}</section>
+  <section className="col-span-4 bg-gray-900 border border-gray-800 rounded-xl min-h-[540px]"><header className="p-4 border-b border-gray-800 text-white font-medium">Canary deployments</header><div className="max-h-52 overflow-auto">{deployments.map((deployment)=><button key={deployment.id} onClick={()=>api.governance.deployment(deployment.id).then(setSelectedDeployment).catch((caught:Error)=>setError(caught.message))} className="w-full text-left p-3 border-b border-gray-800 hover:bg-gray-800"><div className="flex justify-between"><span className="text-white text-sm">{deployment.deployment_code}</span><span className={`px-2 py-1 rounded text-xs ${badge[deployment.status]}`}>{deployment.status}</span></div><div className="text-gray-500 text-xs">{deployment.release_code} · {deployment.chip_name} · {deployment.traffic_pct}%</div></button>)}</div>{selectedDeployment&&<div className="p-4 space-y-3"><div className="text-white font-semibold">{selectedDeployment.deployment_code}</div><div className="text-xs text-gray-500">{selectedDeployment.environment} · {selectedDeployment.region} · v{selectedDeployment.version}</div><div className="flex flex-wrap gap-2">{canMeasure&&['CANARY','PRODUCTION'].includes(selectedDeployment.status)&&<button className={`${button} bg-indigo-700 text-white`} onClick={telemetry}>Append telemetry</button>}{canApprove&&selectedDeployment.status==='CANARY'&&<button className={`${button} bg-emerald-700 text-white`} onClick={promote}>Promote</button>}{['CANARY','PRODUCTION'].includes(selectedDeployment.status)&&<button className={`${button} bg-red-800 text-white`} onClick={rollback}>Rollback</button>}</div><div className="border border-gray-800 rounded p-3"><div className="flex gap-2 text-white text-sm"><Activity className="w-4 h-4 text-cyan-400" />{selectedDeployment.telemetry?.length||0} immutable readings</div></div><div className="max-h-40 overflow-auto">{selectedDeployment.events?.map((event)=><div key={String(event.id)} className="text-xs mb-2"><div className="text-gray-300">{String(event.action).split('_').join(' ')}</div><div className="text-gray-600">{new Date(String(event.created_at)).toLocaleString()} · {String(event.event_hash).slice(0,12)}…</div></div>)}</div></div>}</section></div>
+  <div className="mt-5 flex gap-2 text-xs text-gray-500"><ShieldAlert className="w-4 h-4" />Only measured, independently approved placements may start a canary; promotion fails closed on runtime SLO blockers.</div></div>;
 }

@@ -1,9 +1,5 @@
 -- Seed data for ChipProfiler
 
-INSERT INTO users (email, password, name) VALUES
-('admin@demo.com', '$2b$10$e4dPQpe3XIDluCZCv3b3iu/H/3f816tgim6l5ly5k7pChHG235Dey', 'Chip Analyst')
-ON CONFLICT (email) DO NOTHING;
-
 -- Chips
 INSERT INTO chips (name, manufacturer, architecture, context_switch_ns, kv_cache_gb, speculative_decode, tdp_watts, memory_bandwidth_gbps, compute_tops, process_node_nm, price_usd, availability, released_date) VALUES
 ('H100 SXM5', 'NVIDIA', 'Hopper GH100', 1200, 80.0, TRUE, 700, 3350, 1979, 4, 30000, 'limited', '2022-09-20'),

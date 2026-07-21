@@ -71,4 +71,19 @@ export const api = {
     const s = qs.toString();
     return apiFetch('/search' + (s ? `?${s}` : ''));
   },
+  governance: {
+    profiles: () => apiFetch('/governance/hardware-profiles'),
+    createProfile: (data: unknown) => apiFetch('/governance/hardware-profiles', { method: 'POST', body: JSON.stringify(data) }),
+    releases: () => apiFetch('/governance/releases'),
+    release: (id: number) => apiFetch(`/governance/releases/${id}`),
+    createRelease: (data: unknown) => apiFetch('/governance/releases', { method: 'POST', body: JSON.stringify(data) }),
+    releaseWorkflow: (id: number, data: unknown) => apiFetch(`/governance/releases/${id}/release`, { method: 'POST', body: JSON.stringify(data) }),
+    evaluate: (id: number, data: unknown) => apiFetch(`/governance/releases/${id}/evaluations`, { method: 'POST', body: JSON.stringify(data) }),
+    decideEvaluation: (id: number, data: unknown) => apiFetch(`/governance/evaluations/${id}/decision`, { method: 'POST', body: JSON.stringify(data) }),
+    deployments: () => apiFetch('/governance/deployments'),
+    deployment: (id: number) => apiFetch(`/governance/deployments/${id}`),
+    createDeployment: (data: unknown) => apiFetch('/governance/deployments', { method: 'POST', body: JSON.stringify(data) }),
+    telemetry: (id: number, events: unknown[]) => apiFetch(`/governance/deployments/${id}/telemetry`, { method: 'POST', body: JSON.stringify({ events }) }),
+    deploymentAction: (id: number, action: string, data: unknown) => apiFetch(`/governance/deployments/${id}/actions/${action}`, { method: 'POST', body: JSON.stringify(data) }),
+  },
 };

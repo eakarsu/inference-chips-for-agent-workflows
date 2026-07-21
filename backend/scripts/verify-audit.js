@@ -1,0 +1,3 @@
+const db=require('../db');const {verifyChain}=require('../lib/governance-rules');
+async function main(){const organizationId=Number(process.env.ORGANIZATION_ID);if(!Number.isInteger(organizationId)||organizationId<1)throw new Error('ORGANIZATION_ID must be a positive integer');const rows=(await db.query('SELECT * FROM governance_events WHERE organization_id=$1 ORDER BY id',[organizationId])).rows;if(!verifyChain(rows))throw new Error(`Governance audit chain failed for organization ${organizationId}`);console.log(`verified ${rows.length} governance events for organization ${organizationId}`);await db.end();}
+main().catch(async(error)=>{console.error(error.message);await db.end().catch(()=>{});process.exitCode=1;});
