@@ -1,3 +1,5 @@
+
+import FullAIExamples, { useFullAIExamples } from "../components/FullAIExamples";
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import AIResponse from '../components/AIResponse';
@@ -21,6 +23,8 @@ const tabs = [
 ];
 
 export default function AICenterPage() {
+  const fullAIExamples = useFullAIExamples();
+
   const [activeTab, setActiveTab] = useState('chip-recommendation');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
@@ -68,87 +72,10 @@ export default function AICenterPage() {
   const selectedWorkflow = workflows.find(w => String(w.id) === selectedWorkflowId);
   const workflowSteps = steps.filter(s => selectedWorkflow && s.workflow_name === selectedWorkflow.name);
 
-  // Sample prefill helpers: try to match a real chip/workflow by name substring
-  const pickChip = (needle: string) => {
-    const n = needle.toLowerCase();
-    const hit = chips.find(c => c.name.toLowerCase().includes(n));
-    if (hit) setSelectedChipId(String(hit.id));
-  };
-  const pickWorkflow = (needle: string) => {
-    const n = needle.toLowerCase();
-    const hit = workflows.find(w => w.name.toLowerCase().includes(n) || w.agent_type.toLowerCase().includes(n));
-    if (hit) setSelectedWorkflowId(String(hit.id));
-  };
-
-  type Sample = { label: string; apply: () => void };
-  const samplesByTab: Record<string, Sample[]> = {
-    'chip-recommendation': [
-      { label: 'RAG on H100', apply: () => { pickChip('H100'); pickWorkflow('rag'); setRequirements('Sub-150ms p99, 8K context, FP8 KV-cache, $0.0008/1K tok target'); } },
-      { label: 'Multi-agent on B200', apply: () => { pickChip('B200'); pickWorkflow('multi-agent'); setRequirements('5 concurrent agents, 32K context, NVLink fabric, 2.4x perf/W vs Hopper'); } },
-      { label: 'Voice on Groq LPU', apply: () => { pickChip('Groq'); pickWorkflow('voice'); setRequirements('Streaming TTFT < 80ms, 500 TPS sustained, deterministic latency'); } },
-    ],
-    'bottleneck-analysis': [
-      { label: 'ReAct loop', apply: () => { pickWorkflow('react'); } },
-      { label: 'Long-context RAG', apply: () => { pickWorkflow('long-context'); } },
-      { label: 'Multi-agent', apply: () => { pickWorkflow('multi-agent'); } },
-    ],
-    'performance-prediction': [
-      { label: 'H100 + RAG', apply: () => { pickChip('H100'); pickWorkflow('rag'); } },
-      { label: 'MI300X + ReAct', apply: () => { pickChip('MI300X'); pickWorkflow('react'); } },
-      { label: 'TPU v5p + multi-agent', apply: () => { pickChip('TPU v5p'); pickWorkflow('multi-agent'); } },
-    ],
-    'architecture-design': [
-      { label: 'Realtime RAG', apply: () => { setUseCase('Real-time RAG with 70B model and 32K context for enterprise copilots'); setScale('50M req/day, p99 < 200ms, $400K/mo budget, multi-region us-west-2 + eu-west-1'); } },
-      { label: 'Voice agent fleet', apply: () => { setUseCase('Voice agent serving via Groq LPU + Cerebras WSE-3 backup for spike traffic'); setScale('200K concurrent calls, TTFT < 100ms, 99.95% SLA'); } },
-      { label: 'Long-context multi-agent', apply: () => { setUseCase('1M-token long-context multi-agent orchestration on B200/MI325X mixed fleet'); setScale('5M agent runs/day, 1M ctx tokens, p95 < 30s end-to-end'); } },
-    ],
-    'latency-cost-optimizer': [
-      { label: 'RAG / $250K / 100ms', apply: () => { pickWorkflow('rag'); setBudgetUsd('250000'); setLatencyTargetMs('100'); } },
-      { label: 'Voice / $80K / 50ms', apply: () => { pickWorkflow('voice'); setBudgetUsd('80000'); setLatencyTargetMs('50'); } },
-      { label: 'Multi-agent / $500K / 250ms', apply: () => { pickWorkflow('multi-agent'); setBudgetUsd('500000'); setLatencyTargetMs('250'); } },
-    ],
-    'throughput-predictor': [
-      { label: 'H100 batch sweep', apply: () => { pickChip('H100'); pickWorkflow('rag'); setBatchSizes('1,4,16,64,256'); setConcurrency('32'); } },
-      { label: 'B200 large batch', apply: () => { pickChip('B200'); pickWorkflow('multi-agent'); setBatchSizes('8,32,128,512,2048'); setConcurrency('128'); } },
-      { label: 'Groq LPU streaming', apply: () => { pickChip('Groq'); pickWorkflow('voice'); setBatchSizes('1,2,4,8,16'); setConcurrency('512'); } },
-    ],
-    'energy-efficiency-scorer': [
-      { label: 'H100 us-west-2', apply: () => { pickChip('H100'); pickWorkflow('rag'); setRegion('us-west-2'); } },
-      { label: 'MI300X eu-west-1', apply: () => { pickChip('MI300X'); pickWorkflow('react'); setRegion('eu-west-1'); } },
-      { label: 'Trainium2 us-east-1', apply: () => { pickChip('Trainium2'); pickWorkflow('long-context'); setRegion('us-east-1'); } },
-    ],
-    'benchmark-narrator': [
-      { label: 'Top 12 rows', apply: () => { /* uses first 12 by default */ } },
-    ],
-    'vendor-risk-scorer': [
-      { label: 'NVIDIA / 3yr', apply: () => { pickChip('H100'); setHorizonYears('3'); } },
-      { label: 'AMD MI325X / 5yr', apply: () => { pickChip('MI325X'); setHorizonYears('5'); } },
-      { label: 'Sohu (Etched) / 2yr', apply: () => { pickChip('Sohu'); setHorizonYears('2'); } },
-    ],
-    'deployment-strategy': [
-      { label: 'RAG / 3-region / 150ms', apply: () => { pickWorkflow('rag'); pickChip('H100'); setRegionsList('us-west-2,us-east-1,eu-west-1'); setSlaP99Ms('150'); setTrafficPattern('diurnal, 3x peak vs trough, weekend dip'); } },
-      { label: 'Voice / 5-region / 80ms', apply: () => { pickWorkflow('voice'); pickChip('Groq'); setRegionsList('us-west-2,us-east-1,eu-west-1,ap-south-1,ap-southeast-1'); setSlaP99Ms('80'); setTrafficPattern('always-on streaming, bursty during business hours'); } },
-      { label: 'Multi-agent / 2-region / 300ms', apply: () => { pickWorkflow('multi-agent'); pickChip('B200'); setRegionsList('us-west-2,eu-west-1'); setSlaP99Ms('300'); setTrafficPattern('batchy, 10x spikes during marketing campaigns'); } },
-    ],
-    'scaling-curve-forecaster': [
-      { label: '250 QPS / 15% growth / 12mo', apply: () => { pickChip('H100'); pickWorkflow('rag'); setCurrentQps('250'); setGrowthRatePct('15'); setHorizonMonths('12'); } },
-      { label: '1000 QPS / 8% growth / 24mo', apply: () => { pickChip('B200'); pickWorkflow('multi-agent'); setCurrentQps('1000'); setGrowthRatePct('8'); setHorizonMonths('24'); } },
-      { label: '50 QPS / 40% growth / 18mo', apply: () => { pickChip('MI300X'); pickWorkflow('react'); setCurrentQps('50'); setGrowthRatePct('40'); setHorizonMonths('18'); } },
-    ],
-    'quantization-advisor': [
-      { label: 'Llama-3.1-70B FP16 -> FP8 on H100', apply: () => { pickChip('H100'); setModelName('Llama-3.1-70B-Instruct'); setModelParamsB('70'); setCurrentDtype('fp16'); setAccuracyTolerancePct('1.5'); setTargetWorkload('agent loop with ReAct + tool use'); } },
-      { label: 'Mixtral 8x22B BF16 -> AWQ on MI300X', apply: () => { pickChip('MI300X'); setModelName('Mixtral-8x22B-Instruct'); setModelParamsB('141'); setCurrentDtype('bf16'); setAccuracyTolerancePct('2.0'); setTargetWorkload('long-context RAG, 32K ctx'); } },
-      { label: 'Llama-3.2-3B FP16 -> INT4 on Trainium2', apply: () => { pickChip('Trainium2'); setModelName('Llama-3.2-3B-Instruct'); setModelParamsB('3'); setCurrentDtype('fp16'); setAccuracyTolerancePct('3.0'); setTargetWorkload('edge / on-device voice assistant'); } },
-    ],
-    'workflow-profiler-analyzer': [
-      { label: 'ReAct loop on H100', apply: () => { pickWorkflow('react'); pickChip('H100'); } },
-      { label: 'Multi-agent on B200', apply: () => { pickWorkflow('multi-agent'); pickChip('B200'); } },
-      { label: 'Long-context RAG on MI325X', apply: () => { pickWorkflow('long-context'); pickChip('MI325X'); } },
-    ],
-  };
-  const currentSamples = samplesByTab[activeTab] || [];
-
   const run = async () => {
+    if (needsWorkflow && !selectedWorkflow) { setResult('Select an existing workflow before running this analysis.'); return; }
+    if (needsChip && !selectedChip) { setResult('Select an existing chip before running this analysis.'); return; }
+    if (activeTab === 'benchmark-narrator' && !benchmarks.length) { setResult('Add real benchmark records before running this analysis.'); return; }
     setLoading(true); setResult('');
     try {
       let res: {result: string};
@@ -229,7 +156,7 @@ export default function AICenterPage() {
   const needsChip = ['performance-prediction','throughput-predictor','energy-efficiency-scorer','vendor-risk-scorer','deployment-strategy','scaling-curve-forecaster','quantization-advisor','workflow-profiler-analyzer'].includes(activeTab);
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
+    <div className="p-6 max-w-4xl mx-auto" data-full-ai-workspace="AICenterPage"><FullAIExamples controller={fullAIExamples} disabled={Boolean(loading)} />
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white">AI Intelligence Center</h1>
         <p className="text-gray-400 text-sm mt-1">AI-powered chip selection, optimization, efficiency, and risk analysis</p>
@@ -248,21 +175,10 @@ export default function AICenterPage() {
       </div>
 
       <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 mb-4 space-y-4">
-        {currentSamples.length > 0 && (
-          <div className="flex flex-wrap gap-2 items-center">
-            <span className="text-xs text-gray-500 uppercase tracking-wide">Samples</span>
-            {currentSamples.map(s => (
-              <button key={s.label} type="button" onClick={s.apply}
-                className="px-2.5 py-1 rounded-md bg-gray-800 hover:bg-cyan-700 text-gray-300 hover:text-white text-xs font-medium border border-gray-700 hover:border-cyan-600 transition-colors">
-                {s.label}
-              </button>
-            ))}
-          </div>
-        )}
         {needsWorkflow && (
           <div>
             <label className="block text-xs text-gray-400 mb-1">Workflow</label>
-            <select value={selectedWorkflowId} onChange={e => setSelectedWorkflowId(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <select value={selectedWorkflowId} onChange={e => setSelectedWorkflowId(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: selectedWorkflowId, change: e => setSelectedWorkflowId(e.target.value), label: "selectedWorkflowId", manual: false, json: false, sample: '' }, "p1-17002", undefined)}>
               {workflows.map(w => <option key={w.id} value={w.id}>{w.name} ({w.agent_type})</option>)}
             </select>
           </div>
@@ -270,7 +186,7 @@ export default function AICenterPage() {
         {needsChip && (
           <div>
             <label className="block text-xs text-gray-400 mb-1">Chip</label>
-            <select value={selectedChipId} onChange={e => setSelectedChipId(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500">
+            <select value={selectedChipId} onChange={e => setSelectedChipId(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: selectedChipId, change: e => setSelectedChipId(e.target.value), label: "selectedChipId", manual: false, json: false, sample: '' }, "p1-17509", undefined)}>
               {chips.map(c => <option key={c.id} value={c.id}>{c.name} ({c.architecture})</option>)}
             </select>
           </div>
@@ -278,7 +194,7 @@ export default function AICenterPage() {
         {activeTab === 'chip-recommendation' && (
           <div>
             <label className="block text-xs text-gray-400 mb-1">Requirements</label>
-            <input value={requirements} onChange={e => setRequirements(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            <input value={requirements} onChange={e => setRequirements(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: requirements, change: e => setRequirements(e.target.value), label: "requirements", manual: false, json: false, sample: 'Low latency, high throughput, cost-efficient' }, "p1-18040", undefined)} />
           </div>
         )}
         {activeTab === 'bottleneck-analysis' && workflowSteps.length > 0 && (
@@ -288,11 +204,11 @@ export default function AICenterPage() {
           <>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Use Case</label>
-              <input value={useCase} onChange={e => setUseCase(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input value={useCase} onChange={e => setUseCase(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: useCase, change: e => setUseCase(e.target.value), label: "useCase", manual: false, json: false, sample: 'Real-time LLM inference for agentic workflows' }, "p1-18709", undefined)} />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Scale &amp; Requirements</label>
-              <input value={scale} onChange={e => setScale(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input value={scale} onChange={e => setScale(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: scale, change: e => setScale(e.target.value), label: "scale", manual: false, json: false, sample: '100M requests/day, 10ms p99 latency requirement' }, "p1-19063", undefined)} />
             </div>
           </>
         )}
@@ -300,11 +216,11 @@ export default function AICenterPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Monthly Budget (USD)</label>
-              <input type="number" value={budgetUsd} onChange={e => setBudgetUsd(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input type="number" value={budgetUsd} onChange={e => setBudgetUsd(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: budgetUsd, change: e => setBudgetUsd(e.target.value), label: "budgetUsd", manual: false, json: false, sample: '250000' }, "p1-19538", undefined)} />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Latency Target (ms)</label>
-              <input type="number" value={latencyTargetMs} onChange={e => setLatencyTargetMs(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input type="number" value={latencyTargetMs} onChange={e => setLatencyTargetMs(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: latencyTargetMs, change: e => setLatencyTargetMs(e.target.value), label: "latencyTargetMs", manual: false, json: false, sample: '100' }, "p1-19905", undefined)} />
             </div>
           </div>
         )}
@@ -312,18 +228,18 @@ export default function AICenterPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Batch Sizes (comma-sep)</label>
-              <input value={batchSizes} onChange={e => setBatchSizes(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input value={batchSizes} onChange={e => setBatchSizes(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: batchSizes, change: e => setBatchSizes(e.target.value), label: "batchSizes", manual: false, json: false, sample: '1,4,16,64,256' }, "p1-20418", undefined)} />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Concurrency</label>
-              <input type="number" value={concurrency} onChange={e => setConcurrency(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input type="number" value={concurrency} onChange={e => setConcurrency(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: concurrency, change: e => setConcurrency(e.target.value), label: "concurrency", manual: false, json: false, sample: '32' }, "p1-20765", undefined)} />
             </div>
           </div>
         )}
         {activeTab === 'energy-efficiency-scorer' && (
           <div>
             <label className="block text-xs text-gray-400 mb-1">Region</label>
-            <input value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            <input value={region} onChange={e => setRegion(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: region, change: e => setRegion(e.target.value), label: "region", manual: false, json: false, sample: 'us-west-2' }, "p1-21200", undefined)} />
           </div>
         )}
         {activeTab === 'benchmark-narrator' && (
@@ -332,23 +248,23 @@ export default function AICenterPage() {
         {activeTab === 'vendor-risk-scorer' && (
           <div>
             <label className="block text-xs text-gray-400 mb-1">Deployment Horizon (years)</label>
-            <input type="number" value={horizonYears} onChange={e => setHorizonYears(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+            <input type="number" value={horizonYears} onChange={e => setHorizonYears(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: horizonYears, change: e => setHorizonYears(e.target.value), label: "horizonYears", manual: false, json: false, sample: '3' }, "p1-21789", undefined)} />
           </div>
         )}
         {activeTab === 'deployment-strategy' && (
           <>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Target Regions (comma-sep)</label>
-              <input value={regionsList} onChange={e => setRegionsList(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input value={regionsList} onChange={e => setRegionsList(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: regionsList, change: e => setRegionsList(e.target.value), label: "regionsList", manual: false, json: false, sample: 'us-west-2,us-east-1,eu-west-1' }, "p1-22241", undefined)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">SLA p99 (ms)</label>
-                <input type="number" value={slaP99Ms} onChange={e => setSlaP99Ms(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+                <input type="number" value={slaP99Ms} onChange={e => setSlaP99Ms(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: slaP99Ms, change: e => setSlaP99Ms(e.target.value), label: "slaP99Ms", manual: false, json: false, sample: '150' }, "p1-22650", undefined)} />
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Traffic Pattern</label>
-                <input value={trafficPattern} onChange={e => setTrafficPattern(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+                <input value={trafficPattern} onChange={e => setTrafficPattern(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: trafficPattern, change: e => setTrafficPattern(e.target.value), label: "trafficPattern", manual: false, json: false, sample: 'diurnal, 3x peak vs trough, weekend dip' }, "p1-23019", undefined)} />
               </div>
             </div>
           </>
@@ -357,15 +273,15 @@ export default function AICenterPage() {
           <div className="grid grid-cols-3 gap-4">
             <div>
               <label className="block text-xs text-gray-400 mb-1">Current QPS</label>
-              <input type="number" value={currentQps} onChange={e => setCurrentQps(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input type="number" value={currentQps} onChange={e => setCurrentQps(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: currentQps, change: e => setCurrentQps(e.target.value), label: "currentQps", manual: false, json: false, sample: '250' }, "p1-23526", undefined)} />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Growth % / month</label>
-              <input type="number" value={growthRatePct} onChange={e => setGrowthRatePct(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input type="number" value={growthRatePct} onChange={e => setGrowthRatePct(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: growthRatePct, change: e => setGrowthRatePct(e.target.value), label: "growthRatePct", manual: false, json: false, sample: '15' }, "p1-23892", undefined)} />
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Horizon (months)</label>
-              <input type="number" value={horizonMonths} onChange={e => setHorizonMonths(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input type="number" value={horizonMonths} onChange={e => setHorizonMonths(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: horizonMonths, change: e => setHorizonMonths(e.target.value), label: "horizonMonths", manual: false, json: false, sample: '12' }, "p1-24264", undefined)} />
             </div>
           </div>
         )}
@@ -374,33 +290,34 @@ export default function AICenterPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Model Name</label>
-                <input value={modelName} onChange={e => setModelName(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+                <input value={modelName} onChange={e => setModelName(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: modelName, change: e => setModelName(e.target.value), label: "modelName", manual: false, json: false, sample: 'Llama-3.1-70B-Instruct' }, "p1-24781", undefined)} />
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Params (B)</label>
-                <input type="number" value={modelParamsB} onChange={e => setModelParamsB(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+                <input type="number" value={modelParamsB} onChange={e => setModelParamsB(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: modelParamsB, change: e => setModelParamsB(e.target.value), label: "modelParamsB", manual: false, json: false, sample: '70' }, "p1-25133", undefined)} />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Current dtype</label>
-                <input value={currentDtype} onChange={e => setCurrentDtype(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+                <input value={currentDtype} onChange={e => setCurrentDtype(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: currentDtype, change: e => setCurrentDtype(e.target.value), label: "currentDtype", manual: false, json: false, sample: 'fp16' }, "p1-25580", undefined)} />
               </div>
               <div>
                 <label className="block text-xs text-gray-400 mb-1">Accuracy tolerance (% drop)</label>
-                <input type="number" value={accuracyTolerancePct} onChange={e => setAccuracyTolerancePct(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+                <input type="number" value={accuracyTolerancePct} onChange={e => setAccuracyTolerancePct(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: accuracyTolerancePct, change: e => setAccuracyTolerancePct(e.target.value), label: "accuracyTolerancePct", manual: false, json: false, sample: '1.5' }, "p1-25955", undefined)} />
               </div>
             </div>
             <div>
               <label className="block text-xs text-gray-400 mb-1">Target Workload</label>
-              <input value={targetWorkload} onChange={e => setTargetWorkload(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" />
+              <input value={targetWorkload} onChange={e => setTargetWorkload(e.target.value)} className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500" data-full-ai-field={fullAIExamples.bind({ current: targetWorkload, change: e => setTargetWorkload(e.target.value), label: "targetWorkload", manual: false, json: false, sample: 'agent loop with ReAct + tool use' }, "p1-26361", undefined)} />
             </div>
           </>
         )}
         {activeTab === 'workflow-profiler-analyzer' && workflowSteps.length > 0 && (
           <p className="text-gray-500 text-xs">{workflowSteps.length} steps loaded for selected workflow.</p>
         )}
-        <button onClick={run} disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
+        {((needsWorkflow && !selectedWorkflow) || (needsChip && !selectedChip) || (activeTab === 'benchmark-narrator' && !benchmarks.length)) && <p role="status" className="text-amber-300 text-xs">This analysis needs {needsWorkflow && !selectedWorkflow ? 'an existing workflow' : needsChip && !selectedChip ? 'an existing chip' : 'real benchmark records'} before generation.</p>}
+        <button type="button" onClick={run} disabled={loading || (needsWorkflow && !selectedWorkflow) || (needsChip && !selectedChip) || (activeTab === 'benchmark-narrator' && !benchmarks.length)} className="w-full bg-cyan-600 hover:bg-cyan-700 disabled:opacity-50 text-white py-2.5 rounded-lg text-sm font-medium transition-colors">
           {loading ? 'Analyzing...' : 'Run AI Analysis'}
         </button>
       </div>

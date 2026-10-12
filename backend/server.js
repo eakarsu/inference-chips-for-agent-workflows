@@ -15,7 +15,15 @@ function createApp() {
   app.get('/api/health',(_req,res)=>res.json({status:'ok',service:'chipprofiler-governed-deployments'}));
   app.use('/api/auth',require('./routes/auth'));
   app.use('/api/governance',require('./routes/governance'));
-  app.use('/api',(_req,res)=>res.status(410).json({error:'Prototype/generated surface disabled; use /api/governance.',code:'UNSUPPORTED_SURFACE'}));
+
+// Advisory AI reports only; native execution and approval routes stay unchanged.
+const aiWorkspaceSupport = require("./aiWorkspaceAdapters.cjs");
+const aiWorkspaceDatabase = require("./db.js");
+app.use('/api/report-workspace', require("./aiWorkspace.cjs").createAIWorkspaceRouter({
+  pool: aiWorkspaceDatabase, authenticateToken: aiWorkspaceSupport.verifiedActorAuth(require("./middleware/auth.js")),
+  aiRateLimiter: aiWorkspaceSupport.createWorkspaceLimiter(), features: require("./aiWorkspaceFeatures.json"),
+}));
+app.use('/api',(_req,res)=>res.status(410).json({error:'Prototype/generated surface disabled; use /api/governance.',code:'UNSUPPORTED_SURFACE'}));
   const frontend=process.env.FRONTEND_DIST||path.join(__dirname,'../frontend/dist');
   if(fs.existsSync(frontend)){app.use(express.static(frontend,{index:false,maxAge:'1h'}));app.get('*',(req,res,next)=>req.path.startsWith('/api/')?next():res.sendFile(path.join(frontend,'index.html')));}
   app.use((error,_req,res,_next)=>{if(error.message==='Origin is not allowed')return res.status(403).json({error:'Origin is not allowed'});console.error('Unhandled request error',error);return res.status(500).json({error:'Service unavailable'});});

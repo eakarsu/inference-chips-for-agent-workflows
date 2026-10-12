@@ -50,18 +50,18 @@ export default function Login() {
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <button
               type="button"
-              onClick={() => { setEmail(import.meta.env.VITE_DEMO_EMAIL || ''); setPassword(import.meta.env.VITE_DEMO_PASSWORD || ''); }}
+              onClick={() => { setEmail(import.meta.env.VITE_DEMO_EMAIL); setPassword(import.meta.env.VITE_DEMO_PASSWORD); setError(''); }}
               disabled={!import.meta.env.VITE_DEMO_EMAIL || !import.meta.env.VITE_DEMO_PASSWORD}
-              aria-label="Auto Fill Demo Credentials"
+              aria-label="Fill demo credentials"
               style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
             >
-              Auto Fill Demo Credentials
+              Fill demo credentials
             </button>
             <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50">
               {loading ? 'Authenticating...' : 'Sign In'}
             </button>
           </form>
-          <p className="mt-4 text-xs text-gray-500">Organization and role-scoped accounts are provisioned by deployment operations. Shared demo credentials are disabled.</p>
+          <p className="mt-4 text-xs text-gray-500">{import.meta.env.VITE_DEMO_EMAIL && import.meta.env.VITE_DEMO_PASSWORD ? 'Demo credentials are filled only; select Sign In to continue.' : 'Demo credentials are not configured for this deployment. Ask your administrator for an account.'}</p>
         </div>
       </div>
     </div>

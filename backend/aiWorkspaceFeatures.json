@@ -1,0 +1,107 @@
+[
+  {
+    "name": "CfAgentLoopProfiler",
+    "id": "cf-agent-loop-profiler",
+    "title": "Agent Loop Profiler",
+    "description": "Prepare a professional advisory report for agent loop profiler using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CfAutoRtlStubs",
+    "id": "cf-auto-rtl-stubs",
+    "title": "Auto-Generated RTL Stubs",
+    "description": "Prepare a professional advisory report for auto-generated rtl stubs using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CfCompilerPassSearch",
+    "id": "cf-compiler-pass-search",
+    "title": "Compiler-Pass Search Loop",
+    "description": "Prepare a professional advisory report for compiler-pass search loop using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CfEnergyEconomics",
+    "id": "cf-energy-economics",
+    "title": "Energy-Per-Task Economics",
+    "description": "Prepare a professional advisory report for energy-per-task economics using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "CfKvcacheSimulator",
+    "id": "cf-kvcache-simulator",
+    "title": "KV-Cache Simulator",
+    "description": "Prepare a professional advisory report for kv-cache simulator using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapChipTraceIngest",
+    "id": "gap-nonai-chip-trace-ingest",
+    "title": "Chip Trace / Profiler Ingest",
+    "description": "Prepare a professional advisory report for chip trace / profiler ingest using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapCompilerPassRecommender",
+    "id": "gap-ai-compiler-pass-recommender",
+    "title": "Compiler Pass Recommender",
+    "description": "Prepare a professional advisory report for compiler pass recommender using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapContextSwitchCost",
+    "id": "gap-ai-context-switch-cost",
+    "title": "Context-Switch Cost Model",
+    "description": "Prepare a professional advisory report for context-switch cost model using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapHbmAllocation",
+    "id": "gap-nonai-hbm-allocation",
+    "title": "HBM Allocation Tracking",
+    "description": "Prepare a professional advisory report for hbm allocation tracking using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapHdlLinkage",
+    "id": "gap-nonai-hdl-linkage",
+    "title": "HDL (Verilog/Chisel) Linkage",
+    "description": "Prepare a professional advisory report for hdl (verilog/chisel) linkage using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapKvCacheSizer",
+    "id": "gap-ai-kv-cache-sizer",
+    "title": "KV Cache Sizer",
+    "description": "Prepare a professional advisory report for kv cache sizer using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapMlperfConnector",
+    "id": "gap-nonai-mlperf-connector",
+    "title": "MLPerf / Bench Connector",
+    "description": "Prepare a professional advisory report for mlperf / bench connector using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapPpaSweepStore",
+    "id": "gap-nonai-ppa-sweep-store",
+    "title": "PPA Sweep Storage",
+    "description": "Prepare a professional advisory report for ppa sweep storage using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapSpeculativeDecodingTuner",
+    "id": "gap-ai-speculative-decoding-tuner",
+    "title": "Speculative Decoding Tuner",
+    "description": "Prepare a professional advisory report for speculative decoding tuner using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  },
+  {
+    "name": "GapWorkflowReplaySim",
+    "id": "gap-ai-workflow-replay-sim",
+    "title": "Workflow Replay Simulator",
+    "description": "Prepare a professional advisory report for workflow replay simulator using the brief and evidence you provide. Review the findings, assumptions, and action plan before applying changes.",
+    "samples": []
+  }
+]
