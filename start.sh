@@ -84,7 +84,7 @@ load_env_file(){ local line key value;while IFS= read -r line||[ -n "$line" ];do
 [ -f "$ENV_FILE" ]||{ echo "Missing required file: $ENV_FILE" >&2;exit 1; };load_env_file
 export PATH="/opt/homebrew/bin:$PATH"
 case "${1:-start}" in
-  check) cd "$PROJECT_DIR/backend";npm test ;;
+  check) cd "$PROJECT_DIR/backend";exec npm test ;;
   migrate)
     [[ "${ALLOW_SCHEMA_MIGRATION:-}" =~ ^(1|true)$ ]]||{ echo "Set ALLOW_SCHEMA_MIGRATION=1 for explicit migration" >&2;exit 1; }
     psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$PROJECT_DIR/backend/db/schema.sql"
@@ -104,7 +104,8 @@ export RUNTIME_PROJECT_NAME=inference-chips-for-agent-workflows RUNTIME_AI_ENDPO
 export RUNTIME_AI_SYSTEM_PROMPT='You are an inference-workflow governance assistant. Review hardware fit, latency, throughput, power, memory, benchmark provenance, canary evidence, blockers, and human approval or rollback gates.'
 node "$PROJECT_DIR/runtime/setup.mjs"
 CHILD_PIDS=()
-(cd "$PROJECT_DIR"&&exec node runtime/api.mjs)&CHILD_PIDS+=("$!")
+export PORT="$BACKEND_PORT" CORS_ALLOWED_ORIGINS="http://127.0.0.1:$FRONTEND_PORT" CORS_ORIGIN="http://127.0.0.1:$FRONTEND_PORT" CORS_ORIGINS="http://127.0.0.1:$FRONTEND_PORT" EVIDENCE_ALLOWED_HOSTS="${EVIDENCE_ALLOWED_HOSTS:-benchmarks.example.test,specs.example.test,evidence.example.test}"
+(cd "$PROJECT_DIR/backend"&&exec node server.js)&CHILD_PIDS+=("$!")
 (cd "$PROJECT_DIR/frontend"&&exec npm run dev -- --host 127.0.0.1 --port "$FRONTEND_PORT" --strictPort)&CHILD_PIDS+=("$!")
 cleanup(){ trap - EXIT INT TERM;for pid in "${CHILD_PIDS[@]}";do kill "$pid" 2>/dev/null||true;done;for pid in "${CHILD_PIDS[@]}";do wait "$pid" 2>/dev/null||true;done; }
 trap cleanup EXIT INT TERM

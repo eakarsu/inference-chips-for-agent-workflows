@@ -6,6 +6,9 @@ const db = require('../db');
 async function main() {
   const client = await db.connect();
   try {
+    const baseline = fs.readFileSync(path.join(__dirname, '../db/schema.sql'), 'utf8');
+    await client.query(baseline);
+    console.log('applied baseline schema');
     await client.query('CREATE TABLE IF NOT EXISTS schema_migrations(name TEXT PRIMARY KEY,checksum CHAR(64) NOT NULL,applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');
     for (const file of fs.readdirSync(path.join(__dirname, '../db/migrations')).filter((name) => name.endsWith('.sql')).sort()) {
       const sql = fs.readFileSync(path.join(__dirname, '../db/migrations', file), 'utf8');

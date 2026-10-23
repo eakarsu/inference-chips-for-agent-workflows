@@ -10,16 +10,32 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const submitLogin = async (loginEmail: string, loginPassword: string) => {
     setLoading(true); setError('');
     try {
-      const res = await api.login(email, password);
+      const res = await api.login(loginEmail, loginPassword);
       localStorage.setItem('token', res.token);
       localStorage.setItem('user', JSON.stringify(res.user));
       navigate('/deployments');
     } catch (err: unknown) { setError(err instanceof Error ? err.message : 'Login failed'); }
     finally { setLoading(false); }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await submitLogin(email, password);
+  };
+
+  const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
+  const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
+
+  const handleDemoFill = async () => {
+    if (demoEmail && demoPassword) { setEmail(demoEmail); setPassword(demoPassword); return; }
+    try {
+      const res = await fetch('/api/auth/demo-credentials', { cache: 'no-store' });
+      if (res.ok) { const data = await res.json(); if (data.email && data.password) { setEmail(data.email); setPassword(data.password); return; } }
+    } catch { /* fallback below */ }
+    setError('Demo credentials are not configured for this environment.');
   };
 
   return (
@@ -49,14 +65,13 @@ export default function Login() {
             </div>
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <button
-              type="button"
-              onClick={() => { setEmail(import.meta.env.VITE_DEMO_EMAIL); setPassword(import.meta.env.VITE_DEMO_PASSWORD); setError(''); }}
-              disabled={!import.meta.env.VITE_DEMO_EMAIL || !import.meta.env.VITE_DEMO_PASSWORD}
-              aria-label="Fill demo credentials"
-              style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
-            >
-              Fill demo credentials
-            </button>
+                type="button"
+                onClick={handleDemoFill}
+                aria-label="Fill demo credentials"
+                style={{ width: '100%', marginBottom: '12px', padding: '10px 14px', borderRadius: '8px', border: '1px solid currentColor', background: 'transparent', cursor: 'pointer' }}
+              >
+                Fill demo credentials
+              </button>
             <button type="submit" disabled={loading} className="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50">
               {loading ? 'Authenticating...' : 'Sign In'}
             </button>
